@@ -22,7 +22,7 @@
  */
 
 #include <stdint.h>
-
+#include <functional>
 namespace Canard {
 
 /// @brief Base class for message callbacks.
@@ -119,5 +119,32 @@ template <typename T, typename msgtype>
 ArgCallback<T, msgtype>* allocate_arg_callback(T* arg, void (*cb)(T* arg, const CanardRxTransfer& transfer, const msgtype& msg)) {
     return allocate<ArgCallback<T, msgtype>>(arg, cb);
 }
+
+template <typename msgtype>
+class LambdaCallback : public Callback<msgtype> {
+public:
+    /// @brief Constructor
+    /// @param _cb Callable object, such as a lambda or a function
+    LambdaCallback(std::function<void(const CanardRxTransfer&, const msgtype&)> _cb) : cb(_cb) {}
+
+    /// @brief Override the call operator to invoke the stored callable object
+    void operator()(const CanardRxTransfer& transfer, const msgtype& msg) override {
+        cb(transfer, msg);
+    }
+
+private:
+    std::function<void(const CanardRxTransfer&, const msgtype&)> cb;  // Store the lambda or callable object
+};
+
+/// @brief Allocate a LambdaCallback object using new
+/// @tparam msgtype Type of message handled by the callback
+/// @param cb Lambda or callable object
+/// @return LambdaCallback object
+template <typename msgtype>
+LambdaCallback<msgtype>* allocate_lambda_callback(std::function<void(const CanardRxTransfer&, const msgtype&)> cb) {
+    return new LambdaCallback<msgtype>(cb);
+}
+
+
 
 } // namespace Canard
